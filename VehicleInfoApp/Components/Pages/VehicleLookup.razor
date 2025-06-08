@@ -1,0 +1,108 @@
+﻿@page "/"
+@using VehicleInfoApp.Models
+@using VehicleInfoApp.Services.Interfaces
+@inject INhtsaApiService NhtsaApiService
+@rendermode InteractiveServer
+
+<h3 class="mb-4"> Vehicle Info Lookup</h3>
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label">Car Make:</label>
+        <select class="form-select" @bind="selectedMakeId">
+            <option value="-1">-- Select Make --</option>
+            @foreach (var make in Makes)
+            {
+                <option value="@make.Make_ID">@make.Make_Name</option>
+            }
+        </select>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label class="form-label">Model Year:</label>
+        <input type="number" class="form-control" @bind="selectedYear" min="1980" max="2100" />
+    </div>
+</div>
+
+
+<button class="btn btn-primary" @onclick="LoadVehicleInfo">
+    Click me
+    @if (IsLoading)
+    {
+        <span>
+            <span class="spinner-border spinner-border-sm"></span>
+            <span class="ms-2">Loading...</span>
+        </span>
+    }
+    else
+    {
+        <span>Search</span>
+    }
+</button>
+
+
+@if (VehicleTypes?.Any() == true)
+{
+    <div class="mt-4">
+        <h5>Vehicle Types</h5>
+        <ul class="list-group">
+            @foreach (var type in VehicleTypes)
+            {
+                <li class="list-group-item">@type.VehicleTypeName</li>
+            }
+        </ul>
+    </div>
+}
+
+@if (Models?.Any() == true)
+{
+    <div class="mt-4">
+        <h5>Models</h5>
+        <ul class="list-group">
+            @foreach (var model in Models)
+            {
+                <li class="list-group-item">@model.Model_Name</li>
+            }
+        </ul>
+    </div>
+}
+
+@code {
+    List<MakeDto> Makes = new();
+    List<VehicleTypeDto> VehicleTypes = new();
+    List<ModelDto> Models = new();
+
+    int selectedMakeId = -1;
+    int selectedYear = DateTime.Now.Year;
+    bool IsLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Makes = await NhtsaApiService.GetAllMakesAsync();
+    }
+
+    public async Task LoadVehicleInfo()
+    {
+        Console.WriteLine("Search Clicked");
+
+        if (selectedMakeId <= 0 || selectedYear <= 0)
+        {
+            Console.WriteLine("Invalid input");
+            return;
+        }
+
+        IsLoading = true;
+
+        var vehicleTypesTask = NhtsaApiService.GetVehicleTypesForMakeIdAsync(selectedMakeId);
+        var modelsTask = NhtsaApiService.GetModelsForMakeIdYearAsync(selectedMakeId, selectedYear);
+
+        await Task.WhenAll(vehicleTypesTask, modelsTask);
+
+        VehicleTypes = vehicleTypesTask.Result;
+        Models = modelsTask.Result;
+
+        IsLoading = false;
+    }
+
+
+}
