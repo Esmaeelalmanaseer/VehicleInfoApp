@@ -7,3 +7,5 @@
 ## How to Run
 ```bash
 docker-compose up --build
+ docker build --no-cache -t vehicleinfoapp .
+
